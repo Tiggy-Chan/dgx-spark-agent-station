@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Dual-Spark DGX (2x GB10) Production Configuration for DeepSeek-V4.1-Flash (748B)
+# Optimized for Claude Code, Cursor, and Heavy Engineering Workflows
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Cluster Topology & Network Interconnect
+# ------------------------------------------------------------------------------
+# Head node serves Rank 0 and the public API.
+# WORKER is the SSH target of Rank 1 (Node 1). Must be key-based SSH access.
+WORKER="admin@192.168.100.11"
+FABRIC_PEER="192.168.100.11"
+
+# ConnectX-7 Dual-Rail 200GbE RoCE Interconnect
+# Note: On DGX Spark GB10, GID index often differs between nodes (e.g., GID 4 on Node 0, GID 3 on Node 1).
+# The deployment engine automatically handles per-node GID binding.
+MASTER_PORT="29620"
+
+# Internal Zero-Copy NFSv4.2 Cache Sharing (Head -> Worker)
+NFS_SERVER="192.168.100.10"
+NFS_PATH="/home/admin/.cache/huggingface"
+
+# ------------------------------------------------------------------------------
+# 2. Model & Quantization Selection
+# ------------------------------------------------------------------------------
+# 1 = Enable Uncensored Abliterated Overlay (drowzeys keys-DeepSeek-V4.1-Flash-1017-Abliterated)
+# Removes safety refusals and moral preaching templates for white-hat security & raw code generation.
+ABLIT=1
+
+# HuggingFace Token (required if ABLIT=1 for gated repo access)
+# Set your token here or export HF_TOKEN in your environment.
+# HF_TOKEN="hf_..."
+
+# Use high-speed mirror if located in Mainland China (optional, recommended)
+export HF_ENDPOINT="https://hf-mirror.com"
+
+# ------------------------------------------------------------------------------
+# 3. Context Window, Memory & Concurrency
+# ------------------------------------------------------------------------------
+# Context window per request (Tokens):
+# Supported: 262144 (256K), 524288 (512K), 1048576 (Full 1M Window).
+CONTEXT=1048576
+
+# Maximum concurrent active in-flight streams (1-16)
+PARALLEL=4
+
+# Maximum generation tokens per single completion
+MAX_TOKENS=32768
+
+# ------------------------------------------------------------------------------
+# 4. Agent & Reasoning Governance (Crucial for Claude Code)
+# ------------------------------------------------------------------------------
+# Thinking Mode: 1 = Enabled (Reasoning Content streamed before output)
+THINKING=1
+
+# Reasoning Effort: "low", "medium", "high", "xhigh" / "max"
+# For Claude Code, "high" is the recommended balance (500-2000 tokens of high-quality planning).
+# "xhigh" / "max" enables 100/100 depth but requires THINKING_BUDGET to prevent runaway loops.
+REASONING_EFFORT="high"
+
+# Thinking Budget Guard: Maximum reasoning tokens allowed before forcing </think> closure.
+# Prevents models from spending 10K+ tokens in infinite self-doubt loops on complex prompts.
+THINKING_BUDGET=2048
+
+# Multi-turn History Pruning (1 = Enabled, STRONGLY RECOMMENDED for Coding Agents):
+# Automatically drops historical <think> reasoning tokens from previous turns when sending
+# subsequent prompts. Keeps multi-turn conversations lightweight and prevents context bloat.
+DROP_REASONING_HISTORY=1
+
+# Sampling parameters
+TEMPERATURE=1.0
+TOP_P=0.95
+TOP_K=20
+
+# ------------------------------------------------------------------------------
+# 5. Dual-Layer KV Cache & NVMe Persistence (Memory Multipliers)
+# ------------------------------------------------------------------------------
+# KV Sharding (1 = Enabled):
+# Shards the total KV pool across the two physical machines, halving per-node KV RAM usage.
+KV_SHARD=1
+
+# NVMe Spill v2 (GiB allocated per node, 0 = disabled):
+# Asynchronously backs up cached conversation KV blocks to local NVMe SSD.
+# Accelerates multi-turn prefill by 5x (e.g. 6.4s -> 1.2s for 15K tokens).
+SPILL_GIB=64
+SPILL_FLOOR_GIB=50
+SPILL_MIN_TOKENS=8192
+
+# ------------------------------------------------------------------------------
+# 6. Service Endpoint & Safety Guards
+# ------------------------------------------------------------------------------
+HOST="0.0.0.0"
+PORT=8888
+SERVED_NAME="DeepSeek-V4.1-Flash-1017"
+
+# Minimum available host memory (GiB) required before admitting a start
+MIN_AVAIL_GIB=112
+
+# Memguard watchdog floor (GiB). Kills rank containers if available RAM drops below this floor
+# to prevent catastrophic system freezes or Linux OOM killer panic.
+MEMGUARD_GIB=2.5
+MEMGUARD_HOLD_S=4
+MEMGUARD_HARD_GIB=1.0

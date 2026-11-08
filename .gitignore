@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches & Logs
+*.log
+.cache/
+*.tmp
+*.bak*
+
+# Environment & Credentials
+.env
+*.local
+auth.env
+token
+*.token
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+.venv/
+venv/
+ENV/
