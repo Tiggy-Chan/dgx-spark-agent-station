@@ -60,8 +60,9 @@ THINKING=1
 REASONING_EFFORT="high"
 
 # Thinking Budget Guard: Maximum reasoning tokens allowed before forcing </think> closure.
-# Prevents models from spending 10K+ tokens in infinite self-doubt loops on complex prompts.
-THINKING_BUDGET=2048
+# In official DeepSeek guidelines, thinking budget is unconstrained (budget_tokens is ignored).
+# Leave empty for unconstrained official reasoning, or set an integer (e.g. 8192) if needed.
+THINKING_BUDGET=""
 
 # Multi-turn History Pruning (1 = Enabled, STRONGLY RECOMMENDED for Coding Agents):
 # Automatically drops historical <think> reasoning tokens from previous turns when sending
