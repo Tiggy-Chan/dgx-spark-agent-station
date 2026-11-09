@@ -54,15 +54,24 @@ MAX_TOKENS=32768
 # Thinking Mode: 1 = Enabled (Reasoning Content streamed before output)
 THINKING=1
 
-# Reasoning Effort: "low", "medium", "high", "xhigh" / "max"
-# For Claude Code, "high" is the recommended balance (500-2000 tokens of high-quality planning).
-# "xhigh" / "max" enables 100/100 depth but requires THINKING_BUDGET to prevent runaway loops.
-REASONING_EFFORT="high"
+# Reasoning Effort: "low", "medium", "high", "xhigh"
+# Set to "xhigh" for maximal reasoning depth (mapped to 100 in the Jinja chat template).
+REASONING_EFFORT="xhigh"
 
-# Thinking Budget Guard: Maximum reasoning tokens allowed before forcing </think> closure.
-# In official DeepSeek guidelines, thinking budget is unconstrained (budget_tokens is ignored).
-# Leave empty for unconstrained official reasoning, or set an integer (e.g. 8192) if needed.
+# Thinking Budget Guard:
+# In official DeepSeek specification, thinking budget is unconstrained (budget_tokens is ignored).
+# Leave empty for unconstrained official reasoning, protected by LOOP_GUARD instead.
 THINKING_BUDGET=""
+
+# Loop Guard (1 = Enabled):
+# Detects periodic repetitive phrase loops during chain-of-thought and forces </think> closure.
+# Protects against runaway reasoning loops without arbitrarily capping legitimate deep reasoning.
+LOOP_GUARD=1
+
+# Min-P Dynamic Sampling (e.g. 0.05):
+# Dynamically cuts off candidate tokens based on top-token probability, eliminating low-probability
+# noise and hallucination in long reasoning chains while preserving design creativity.
+MIN_P=0.05
 
 # Multi-turn History Pruning (1 = Enabled, STRONGLY RECOMMENDED for Coding Agents):
 # Automatically drops historical <think> reasoning tokens from previous turns when sending
